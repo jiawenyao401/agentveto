@@ -24,6 +24,8 @@ def main(argv: list[str] | None = None) -> int:
 
     p_demo = sub.add_parser("demo", help="Generate an example run and open its report (no API key needed)")
     p_demo.add_argument("-o", "--out", help="Output HTML path")
+    p_demo.add_argument("--veto", action="store_true",
+                        help="Generate the runtime-policy demo instead (calls blocked before they run)")
     p_demo.add_argument("--open", action="store_true", help="Open the report in a browser")
 
     p_report = sub.add_parser("report", help="Write a self-contained HTML report for a run")
@@ -45,9 +47,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.cmd == "demo":
-        from .demo import demo
+        if args.veto:
+            from .demo import demo_veto
 
-        path = demo(out=args.out, open=args.open)
+            path = demo_veto(out=args.out, open=args.open)
+        else:
+            from .demo import demo
+
+            path = demo(out=args.out, open=args.open)
         print(path)
         return 0
 

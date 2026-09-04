@@ -66,8 +66,50 @@ red. Replayed LLM calls are marked.
 | **Explicit spans** | `@trace` or `with start_span(...)` for your own functions and tool calls. Nesting is automatic. |
 | **Cost attribution** | Per-step and per-run, using a pricing table you can override. Unknown models are reported as unknown rather than guessed. |
 | **Record and replay** | First run records LLM responses. `init(replay=True)` replays them, so a 40-step run is reproducible for free. |
+| **Policy gates** | `@guard` evaluates a call *before* it runs and can deny it or route it to a human. Blocked calls are on the record like everything else. |
 | **Self-contained reports** | One HTML file, no CDN, no build step. Renders offline, six months from now, on a plane. |
 | **Nothing leaves your machine** | Traces are written to `./agentveto.db`. There is no server component. |
+
+## Veto: stop a call before it runs
+
+Replay tells you what happened. `@guard` decides, before a dangerous call goes
+out, whether it is allowed to happen at all:
+
+```python
+from agentveto import guard, VetoError
+
+POLICY = {
+    "default": "allow",
+    "rules": [
+        {"name": "no-customer-email", "action": "send_email", "effect": "deny",
+         "reason": "Outbound customer email requires a human in the loop."},
+        {"name": "refund-needs-approval", "action": "issue_refund",
+         "effect": "ask", "when": {"amount_usd": {"gt": 250}},
+         "reason": "Refunds over $250 need a human approver."},
+    ],
+}
+
+@guard(POLICY, action="send_email")
+def send_email(to, subject, body): ...
+
+@guard(POLICY, action="issue_refund")
+def issue_refund(order_id, amount_usd): ...
+
+issue_refund("A-1", 214.50)   # under the line: runs
+issue_refund("A-1", 412.50)   # raises VetoError - no money moves
+```
+
+- **deny** raises `VetoError`; the wrapped function never executes.
+- **ask** prompts on the terminal and **fails closed** (denies) where there is
+  no human - CI, a cron job, a server.
+- Policies are plain dicts: ordered rules, first match wins, `when` clauses
+  with `eq/ne/gt/gte/lt/lte/in/exists` on dot paths into the call payload.
+- Every decision is written onto the trace, so a blocked call appears in the
+  same HTML report as the steps around it, marked `veto`.
+
+```bash
+python examples/veto_demo.py     # 3 blocked calls, no API key needed
+```
 
 ## Replay: the part that matters
 
@@ -94,12 +136,12 @@ Recording is a crowded space. Here is the honest map:
 | Account required to view a trace | no | no | no | yes | no |
 | Single-file report you can email | yes | no | no | no | no |
 | Deterministic replay of LLM calls | yes | yes | no | no | no |
-| Runtime policy enforcement | on roadmap | no | no | no | no |
+| Runtime policy enforcement | yes (V1 preview) | no | no | no | no |
 | Tamper-evident evidence chain | on roadmap | no | yes | no | no |
 
 Nobody in the Python ecosystem does enforcement yet. Recording tells you what
-went wrong; a veto point stops it from going wrong. That is where this is
-going.
+went wrong; a veto point stops it from going wrong. The preview of that is in
+this repo now.
 
 The other honest part: today this does less than the hosted platforms. No
 prompt management, no dataset curation, no hosted dashboards. It does one thing
@@ -109,15 +151,16 @@ machine.
 ## Roadmap
 
 1. **Replay** (done) - deterministic reproduction of any run, locally, for free.
-2. **Prove** (next) - hash-chained, signed traces so a run can be handed to an
+2. **Veto** (done, preview) - a policy gate that evaluates a step *before* it
+   executes and can block it or route it to a human. The part nobody else has.
+3. **Prove** (next) - hash-chained, signed traces so a run can be handed to an
    auditor as evidence, not as a screenshot.
-3. **Veto** - a policy gate that evaluates a step *before* it executes and can
-   block, downgrade, or escalate it. This is the part nobody else has.
 
 ## CLI
 
 ```bash
 agentveto demo                 # example run, no API key needed
+agentveto demo --veto          # policy-gate demo: calls blocked before they run
 agentveto list                 # recorded runs
 agentveto report --run <id>    # write a report for a specific run
 agentveto serve                # local viewer (pip install 'agentveto[serve]')

@@ -13,6 +13,13 @@ current_run_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
     "agentveto_run_id", default=None
 )
 
+# Which Tracer owns the current run. The veto layer needs the concrete
+# instance (not the module singleton) so guarded calls land in the same
+# store as the run that is actually in progress.
+current_tracer: contextvars.ContextVar[Optional[object]] = contextvars.ContextVar(
+    "agentveto_tracer", default=None
+)
+
 span_stack: contextvars.ContextVar[Tuple[str, ...]] = contextvars.ContextVar(
     "agentveto_span_stack", default=()
 )

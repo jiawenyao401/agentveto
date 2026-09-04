@@ -81,6 +81,7 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-bottom:16
 .bar.chain{background:var(--chain)}.bar.span{background:var(--other)}
 .bar.error{background:var(--error)}
 .tag{font-size:10px;color:var(--chain);border:1px solid #B5D4F4;border-radius:3px;padding:0 4px;flex:none}
+.tag.veto{color:#6D28D9;border-color:#C9B8F5;background:#F3EEFD}
 .err{font-size:10px;color:var(--error);border:1px solid #F7C1C1;border-radius:3px;padding:0 4px;flex:none}
 .detail{padding:14px 16px;font-size:13px}
 .detail h3{font-size:14px;font-weight:600;margin-bottom:3px;word-break:break-word}
@@ -224,8 +225,16 @@ footer{margin-top:26px;font-size:12px;color:var(--ink3);text-align:center}
       pair('Cost', fmtCost(s.cost) + (s.pricing_known ? '' : ' (unknown model)'));
       if (s.replayed) pair('Source', 'replayed from recording');
     }
+    var vd = null;
+    try { if (s.attributes){ var _b = JSON.parse(s.attributes); if (_b && _b.veto) vd = _b.veto; } } catch (e) {}
     var attrs = pretty(s.attributes);
     if (attrs && attrs !== '{}') pair('Attributes', attrs);
+    if (vd){
+      pair('Veto', (vd.effect === 'deny' ? 'DENIED' : 'allowed') +
+           (vd.asked ? ' (required human approval)' : '') +
+           (vd.rule ? ' - rule: ' + vd.rule : '') +
+           (vd.reason ? ' - ' + vd.reason : ''));
+    }
     box.appendChild(dl);
 
     if (s.error){
@@ -250,6 +259,8 @@ footer{margin-top:26px;font-size:12px;color:var(--ink3);text-align:center}
   }
 
   spans.forEach(function(s){
+    var v = null;
+    try { if (s.attributes){ var _a = JSON.parse(s.attributes); if (_a && _a.veto) v = _a.veto; } } catch (e) {}
     var row = el('div','row');
     row.setAttribute('data-id', s.id);
     row.style.paddingLeft = (14 + s._depth * 14) + 'px';
@@ -257,6 +268,7 @@ footer{margin-top:26px;font-size:12px;color:var(--ink3);text-align:center}
     var nm = el('div','nm');
     nm.appendChild(el('span','kind ' + s.kind, s.kind));
     nm.appendChild(el('span','txt', s.name));
+    if (v && v.effect === 'deny') nm.appendChild(el('span','tag veto','veto'));
     if (s.replayed) nm.appendChild(el('span','tag','replay'));
     if (s.status === 'error') nm.appendChild(el('span','err','error'));
     row.appendChild(nm);

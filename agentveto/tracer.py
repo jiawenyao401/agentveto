@@ -20,7 +20,7 @@ from contextlib import contextmanager
 from typing import Any
 
 from . import pricing
-from ._context import current_run_id, span_stack
+from ._context import current_run_id, current_tracer, span_stack
 from .store import Store
 
 
@@ -47,13 +47,14 @@ class _NullSpan:
 
 
 class Span:
-    def __init__(self, tracer: "Tracer", span_id: str, run_id: str, name: str, kind: str, started_at: float):
+    def __init__(self, tracer: "Tracer", span_id: str, run_id: str, name: str, kind: str, started_at: float, attributes: dict | None = None):
         self.tracer = tracer
         self.id = span_id
         self.run_id = run_id
         self.name = name
         self.kind = kind
         self.started_at = started_at
+        self._attributes = dict(attributes) if attributes else None
         self._model: str | None = None
         self._tokens_in = 0
         self._tokens_out = 0
@@ -64,6 +65,17 @@ class Span:
         self._ended = False
 
     # -- mutators -----------------------------------------------------
+    def set_attribute(self, key: str, value: Any) -> "Span":
+        """Add or replace one attribute before the span is finalised.
+
+        Used by the veto layer so a decision (allow/deny/ask) ends up in the
+        same report row as the tool call it guarded.
+        """
+        if self._attributes is None:
+            self._attributes = {}
+        self._attributes[key] = value
+        return self
+
     def set_model(self, model: str | None) -> "Span":
         self._model = model
         return self
@@ -118,6 +130,7 @@ class Span:
                 pricing_known=known,
                 replayed=self._replayed,
                 error=self._error,
+                attributes=self._attributes,
             )
         except Exception:  # tracing must never break the caller
             pass
@@ -172,6 +185,7 @@ class Tracer:
 
         run_id = _new_id("run_")
         run_token = current_run_id.set(run_id)
+        tr_token = current_tracer.set(self)
         stack_token = span_stack.set(())
         self.store.create_run(run_id, name, _now(), meta)
         status = "ok"
@@ -186,6 +200,7 @@ class Tracer:
             except Exception:
                 pass
             span_stack.reset(stack_token)
+            current_tracer.reset(tr_token)
             current_run_id.reset(run_token)
 
     # -- spans ---------------------------------------------------------
@@ -197,11 +212,12 @@ class Tracer:
 
         run_id = current_run_id.get()
         implicit = run_id is None
-        run_token = stack_token = None
+        run_token = stack_token = tr_token = None
         if implicit:
             run_id = _new_id("run_")
             self.store.create_run(run_id, name, _now())
             run_token = current_run_id.set(run_id)
+            tr_token = current_tracer.set(self)
             stack_token = span_stack.set(())
 
         stack = span_stack.get()
@@ -209,7 +225,7 @@ class Tracer:
         span_id = _new_id("sp_")
         started = _now()
         self.store.insert_span(span_id, run_id, parent_id, name, kind, started, attributes)
-        span = Span(self, span_id, run_id, name, kind, started)
+        span = Span(self, span_id, run_id, name, kind, started, attributes)
         span_token = span_stack.set(stack + (span_id,))
         try:
             yield span
@@ -225,6 +241,7 @@ class Tracer:
                 except Exception:
                     pass
                 current_run_id.reset(run_token)
+                current_tracer.reset(tr_token)
                 span_stack.reset(stack_token)
 
     # -- decorator -----------------------------------------------------

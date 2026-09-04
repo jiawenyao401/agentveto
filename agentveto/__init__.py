@@ -1,16 +1,17 @@
 """Public API.
 
-The whole surface is: init(), @trace, report(). Everything else is optional.
-Nothing here requires a network call, an API key, or an account.
+The whole surface is: init(), @trace, @guard, report(). Everything else is
+optional. Nothing here requires a network call, an API key, or an account.
 """
 
 from __future__ import annotations
 
-from . import pricing
+from . import pricing, veto
 from ._version import __version__
 from .report import build_report_data, render_html, report
 from .store import Store
 from .tracer import Run, Span, Tracer
+from .veto import Decision, VetoError, evaluate, guard
 
 __all__ = [
     "__version__",
@@ -24,7 +25,13 @@ __all__ = [
     "render_html",
     "build_report_data",
     "demo",
+    "demo_veto",
     "serve",
+    "guard",
+    "evaluate",
+    "Decision",
+    "VetoError",
+    "veto",
     "Store",
     "Tracer",
     "Span",
@@ -90,6 +97,13 @@ def demo(out: str | None = None, *, open: bool = False) -> str:
     from .demo import demo as _demo
 
     return _demo(out=out, open=open)
+
+
+def demo_veto(out: str | None = None, *, open: bool = False) -> str:
+    """Generate the runtime-policy example: calls blocked before they run."""
+    from .demo import demo_veto as _demo_veto
+
+    return _demo_veto(out=out, open=open)
 
 
 def serve(db: str | None = None, host: str = "127.0.0.1", port: int = 8420, open: bool = False) -> None:

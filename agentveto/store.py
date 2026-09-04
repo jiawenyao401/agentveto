@@ -189,7 +189,15 @@ class Store:
         pricing_known: bool = True,
         replayed: bool = False,
         error: str | None = None,
+        attributes: dict | None = None,
     ) -> None:
+        if attributes is not None:
+            with self._lock:
+                self.conn.execute(
+                    "UPDATE spans SET attributes=? WHERE id=?",
+                    (_dump(attributes), span_id),
+                )
+                self.conn.commit()
         with self._lock:
             self.conn.execute(
                 "UPDATE spans SET ended_at=?, duration_ms=?, status=?, model=?, input=?,"
