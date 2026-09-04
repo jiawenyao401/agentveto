@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local trace databases and generated reports
+agentveto.db
+agentveto.db-*
+*.db
+*.db-wal
+*.db-shm
+examples/basic-report.html
+agentveto-*.html
+
+.DS_Store
+.idea/
+.vscode/
