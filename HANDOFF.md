@@ -176,3 +176,64 @@ agentveto serve --open         # 本地查看器
 - 你要发 Show HN → 我帮你打磨标题和第一屏
 
 按上面的修正，**Veto 优先于 Prove**。竞品全卡在"记录"，拦截层是唯一没人的地方。
+
+---
+
+## 八、更新（2026-09-04 晚间）：**V1 = Veto 策略闸门，原型已落地**（commit `453dd40`）
+
+等 token 的间隙把 V1 从"设计"做成了"能跑的原型"。路线图第 2 步提前开工，本地完成、38 个测试全过。
+
+### 新增/变更
+
+```
+agentveto/
+  agentveto/
+    veto.py        V1 核心：Decision / VetoError / evaluate / @guard
+    tracer.py      改动：span 支持 set_attribute（决策结束回写）
+    _context.py    改动：current_tracer contextvar（guard 落到调用方自己的库）
+    report.py      改动：被拦的行打紫色 "veto" 标 + 详情显示决策摘要
+    cli.py         demo 子命令加 --veto
+    demo.py        build_veto_run / demo_veto()
+  tests/test_veto.py   22 个新测试
+  examples/veto_demo.py
+```
+
+### Veto 是怎么工作的（30 秒讲清楚）
+
+```python
+from agentveto import guard, VetoError
+
+POLICY = {"default": "allow", "rules": [
+    {"name": "no-customer-email", "action": "send_email", "effect": "deny",
+     "reason": "Outbound email to a customer requires a human."},
+    {"name": "refund-needs-approval", "action": "issue_refund", "effect": "ask",
+     "when": {"amount_usd": {"gt": 250}}, "reason": "Over $250 needs a human."},
+]}
+
+@guard(POLICY, action="issue_refund")
+def issue_refund(order_id, amount_usd): ...
+```
+
+- 策略是普通 dict：规则有序、**第一条命中生效**（防火墙语义）；`when` 用点路径 + `eq/ne/gt/gte/lt/lte/in/exists`
+- `deny` → 抛 `VetoError`，**被包函数不执行**
+- `ask` → 终端问人；**没有人在（CI/cron/服务器）就拒绝（fail closed）**，绝不默认放行
+- 每次决策（allow/deny/ask + 规则名 + 理由）都写进 trace；被拦的行在报告里显示红色 + 紫色 `veto` 标
+- 支持 async、位置参数自动映射到 payload 字段名
+
+### 验证
+
+```
+38 passed in 0.84s   （原来 16 个，新增 22 个）
+```
+
+Veto demo 报告：9 步，**3 次执行前拦截**（超 $250 退款 ask→无人拒绝、给客户发邮件 deny、全量 PII 导出 deny），整 run 状态健康——agent 处理了每次拦截。20 KB 单文件、零外部依赖。
+
+### 关键取舍（为什么这样做）
+
+1. **决策不新建表，复用 span**——store schema 一行没改，report/serve/CLI 全部自动兼容。克制架构本能的正确示范。
+2. **策略不用 YAML 也不用 CEL**——普通 dict 起步，零依赖。CEL + 可视化编辑器是"产品化阶段"的事（第 6 个月），不是原型期的事。
+3. **tracer 增加 `current_tracer` contextvar**——这样 guard 拦下来时，决策落在**正在跑的 run 自己的库里**，而不是全局单例库。这是多实例共存的关键修复。
+
+### 还卡着的（不变）
+
+GitHub 推送：需要你重新生成一个勾了 **`repo` + `workflow`** 的 classic token（或确认仓库建在 `StateKnot/agentveto` 还是 `jiawenyao401/agentveto`）。token 一到，`e9e88f4`（V0）+ `453dd40`（V1）一起推上去，CI 自动跑 38 个测试。
