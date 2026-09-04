@@ -1,0 +1,47 @@
+site_name: agentveto
+site_description: Runtime control for AI agents - replay, prove, veto.
+site_url: https://jiawenyao401.github.io/agentveto/
+repo_url: https://github.com/jiawenyao401/agentveto
+repo_name: jiawenyao401/agentveto
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - search.suggest
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Policy language: policy.md
+  - MCP server: mcp.md
+  - Launch kit: launch.md
+  - Why Python (not Rust): rust-decision.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - tables
+  - fenced_code
+
+plugins:
+  - search

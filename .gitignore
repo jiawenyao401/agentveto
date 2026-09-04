@@ -17,6 +17,8 @@ agentveto.db-*
 *.db-shm
 examples/basic-report.html
 agentveto-*.html
+site/
+docs/img/_*.png
 
 .DS_Store
 .idea/

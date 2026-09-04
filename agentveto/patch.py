@@ -19,7 +19,6 @@ import hashlib
 import json
 from typing import Any
 
-from ._context import current_run_id
 
 
 def _jsonable(value: Any) -> Any:

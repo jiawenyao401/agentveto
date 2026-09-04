@@ -22,13 +22,32 @@ dependencies = []
 
 [project.optional-dependencies]
 serve = ["fastapi>=0.100", "uvicorn>=0.20"]
-dev = ["pytest>=7.0", "fastapi>=0.100", "uvicorn>=0.20", "httpx>=0.24", "openai>=1.0"]
+mcp = ["mcp>=1.0,<2"]
+dev = ["pytest>=7.0", "fastapi>=0.100", "uvicorn>=0.20", "httpx>=0.24", "openai>=1.0", "mcp>=1.0,<2"]
+docs = ["mkdocs>=1.6", "mkdocs-material>=9.0"]
 
 [project.scripts]
 agentveto = "agentveto.cli:main"
+agentveto-mcp = "agentveto.mcp:main"
 
 [tool.setuptools.packages.find]
 include = ["agentveto*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py39"
+
+[tool.ruff.lint]
+# Be conservative during the early-alpha stage. The CI lint job runs
+# ruff, but only fails on rules we'd actually want to keep clean.
+select = ["E", "F"]
+ignore = ["F841"]  # unused local var: often intentional in tests
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401"]  # imports are part of the contract being tested
+"agentveto/report.py" = ["E501", "E701"]  # inline HTML/CSS/JS; left long on purpose
+"agentveto/serve.py" = ["E501", "E701"]
+"agentveto/tracer.py" = ["E501"]

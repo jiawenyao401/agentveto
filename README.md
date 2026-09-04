@@ -49,13 +49,22 @@ python examples/demo.py
 
 ## What the report looks like
 
-> **TODO:** replace this block with a screenshot of `examples/demo.py` output
-> before the first public launch. The GIF in the README is the single biggest
-> driver of first-week signups - do not ship without it.
+![Veto preview — three blocked calls](docs/img/hero-veto.png)
 
-Each row is a step. The bar shows when it ran and how long it took, relative to
-the whole run. Click a row to inspect the exact prompt and response. Errors are
-red. Replayed LLM calls are marked.
+Three calls in this run were refused *before* they executed. The denied rows are
+red, the ones that went through a human prompt (and failed closed, since no
+human was attached) carry the same `veto` tag. Click any row for the exact
+prompt, response, model and cost.
+
+The replay-only view is the same shape, minus the veto tags:
+
+![Replay demo — full timeline with cost attribution](docs/img/hero.png)
+
+Regenerate these from the bundled demos with:
+
+```bash
+python scripts/make_assets.py
+```
 
 ## What it does today
 
@@ -164,7 +173,35 @@ agentveto demo --veto          # policy-gate demo: calls blocked before they run
 agentveto list                 # recorded runs
 agentveto report --run <id>    # write a report for a specific run
 agentveto serve                # local viewer (pip install 'agentveto[serve]')
+
+# policy tooling
+agentveto policy show policy.json
+agentveto policy validate policy.json --strict
+agentveto policy explain policy.json --action send_email --payload '{"to":"x@y.com"}'
 ```
+
+## MCP server (Claude Code, Cursor, ...)
+
+```bash
+pip install 'agentveto[mcp]'
+```
+
+Then add to your editor's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "agentveto": {
+      "command": "agentveto-mcp",
+      "args": ["--policy", "/abs/path/to/policy.json"]
+    }
+  }
+}
+```
+
+The LLM in your editor can now ask `evaluate_policy("send_email", {...})`
+and rewrite a call before it gets vetoed at runtime. Full docs:
+[`docs/mcp.md`](docs/mcp.md).
 
 ## Configuration
 

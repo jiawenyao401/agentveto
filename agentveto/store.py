@@ -19,7 +19,7 @@ import os
 import sqlite3
 import threading
 import time
-from typing import Any, Iterable
+from typing import Any
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (

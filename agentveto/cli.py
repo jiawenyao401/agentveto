@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
 from ._version import __version__
@@ -43,6 +44,25 @@ def main(argv: list[str] | None = None) -> int:
     p_serve.add_argument("--host", default="127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8420)
     p_serve.add_argument("--open", action="store_true")
+
+    # --- policy: explain / validate / format ---------------------------------
+    p_policy = sub.add_parser("policy", help="Inspect a policy file without running anything")
+    psp = p_policy.add_subparsers(dest="policy_cmd")
+
+    p_show = psp.add_parser("show", help="Summarize a policy file (default, rule count, action set)")
+    p_show.add_argument("file", help="Path to a JSON policy file")
+
+    p_validate = psp.add_parser("validate", help="Validate a policy file; exit 0 if valid")
+    p_validate.add_argument("file")
+    p_validate.add_argument("--strict", action="store_true",
+                            help="Warn on rules without a name or reason")
+
+    p_explain = psp.add_parser("explain", help="Explain which rule would fire for a given action")
+    p_explain.add_argument("file", help="Policy JSON file")
+    p_explain.add_argument("--action", required=True, help="Action name, e.g. send_email")
+    p_explain.add_argument("--payload", default="{}",
+                           help="Payload as a JSON object (string or @file.json)")
+    p_explain.add_argument("--format", choices=("text", "json"), default="text")
 
     args = parser.parse_args(argv)
 
@@ -87,6 +107,80 @@ def main(argv: list[str] | None = None) -> int:
 
         serve(db=args.db, host=args.host, port=args.port, open=args.open)
         return 0
+
+    if args.cmd == "policy":
+        from .policy_io import explain, load_policy
+
+        if args.policy_cmd == "show":
+            policy = load_policy(args.file)
+            rules = policy.get("rules") or []
+            actions = sorted({str(r.get("action", "*")) for r in rules if isinstance(r, dict)})
+            print(f"policy: {args.file}")
+            print(f"  default     : {policy.get('default', 'allow')}")
+            print(f"  rules       : {len(rules)}")
+            print(f"  actions     : {', '.join(actions) if actions else '(none)'}")
+            effects: dict[str, int] = {}
+            for r in rules:
+                if isinstance(r, dict):
+                    effects[r.get("effect", "deny")] = effects.get(r.get("effect", "deny"), 0) + 1
+            for k, v in sorted(effects.items()):
+                print(f"    {k:<7}: {v}")
+            return 0
+
+        if args.policy_cmd == "validate":
+            try:
+                policy = load_policy(args.file)
+            except Exception as exc:
+                print(f"invalid: {exc}", file=sys.stderr)
+                return 2
+            warnings: list[str] = []
+            if args.strict:
+                for i, r in enumerate(policy.get("rules") or []):
+                    if isinstance(r, dict):
+                        if not r.get("name"):
+                            warnings.append(f"rule #{i} has no name")
+                        if not r.get("reason"):
+                            warnings.append(f"rule #{i} ({r.get('name', i)}) has no human-readable reason")
+            for w in warnings:
+                print(f"warning: {w}", file=sys.stderr)
+            if warnings:
+                return 1
+            print(f"ok: {len(policy.get('rules') or [])} rules")
+            return 0
+
+        if args.policy_cmd == "explain":
+            policy = load_policy(args.file)
+            payload_str = args.payload
+            if payload_str.startswith("@"):
+                with open(payload_str[1:], encoding="utf-8") as fh:
+                    payload_str = fh.read()
+            try:
+                payload = json.loads(payload_str) if payload_str.strip() else {}
+            except json.JSONDecodeError as exc:
+                print(f"invalid --payload JSON: {exc}", file=sys.stderr)
+                return 2
+            explanation = explain(policy, args.action, payload)
+            if args.format == "json":
+                print(json.dumps(explanation.as_dict(), indent=2, ensure_ascii=False))
+                return 0
+            print(f"action  : {args.action}")
+            print(f"payload : {json.dumps(payload, ensure_ascii=False)}")
+            print(f"default : {explanation.default}")
+            print()
+            for r in explanation.rules:
+                tag = "MATCH" if r.matched else "skip "
+                head = f"  [{tag}] {r.action:<14} -> {r.effect:<6}"
+                head += f"  ({r.name})" if r.name else ""
+                print(head)
+                for p in r.paths:
+                    print(f"          {'OK' if p.matched else 'X'} {p.detail}")
+            print()
+            d = explanation.decision
+            print(f"decision: {d}")
+            return 0
+
+        parser.print_help()
+        return 1
 
     parser.print_help()
     return 1

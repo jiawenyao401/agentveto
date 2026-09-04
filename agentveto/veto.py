@@ -46,8 +46,11 @@ import sys
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from .i18n import localize as _localize
+
 EFFECTS = ("allow", "deny", "ask")
-OPS = {"eq", "ne", "gt", "gte", "lt", "lte", "in", "exists"}
+OPS = {"eq", "ne", "gt", "gte", "lt", "lte", "in", "exists",
+       "endswith", "startswith", "contains", "len_eq", "len_gt", "len_lt"}
 
 _MISSING = object()
 
@@ -58,16 +61,21 @@ class Decision:
 
     effect: str
     action: str | None = None
-    rule: str | None = None
-    reason: str = ""
+    rule: str | None = ""  # empty string = no rule matched (the default fired)
+    reason: Any = ""
 
     @property
     def allowed(self) -> bool:
         return self.effect == "allow"
 
+    def reason_text(self, lang: str | None = None) -> str:
+        """Return the reason localized to the active language."""
+        return _localize(self.reason, lang)
+
     def __str__(self) -> str:
         where = f"rule '{self.rule}'" if self.rule else "default"
-        why = f": {self.reason}" if self.reason else ""
+        text = _localize(self.reason)
+        why = f": {text}" if text else ""
         return f"[{where}] {self.effect} {self.action or ''}{why}".strip()
 
 
@@ -108,14 +116,17 @@ def _apply(op: str, actual: Any, expected: Any) -> bool:
         return actual == expected
     if op == "ne":
         return actual != expected
-    if op == "gt":
-        return actual > expected
-    if op == "gte":
-        return actual >= expected
-    if op == "lt":
-        return actual < expected
-    if op == "lte":
-        return actual <= expected
+    if op in ("gt", "gte", "lt", "lte"):
+        try:
+            if op == "gt":
+                return actual > expected
+            if op == "gte":
+                return actual >= expected
+            if op == "lt":
+                return actual < expected
+            return actual <= expected
+        except TypeError:
+            return False  # incomparable types -> no match
     if op == "in":
         try:
             return actual in expected
@@ -123,7 +134,28 @@ def _apply(op: str, actual: Any, expected: Any) -> bool:
             return False
     if op == "exists":
         return bool(expected)  # caller already knows actual is present
+    if op in ("endswith", "startswith", "contains"):
+        if not isinstance(actual, str) or not isinstance(expected, str):
+            return False
+        if op == "endswith":
+            return actual.endswith(expected)
+        if op == "startswith":
+            return actual.startswith(expected)
+        return expected in actual  # contains
+    if op == "len_eq":
+        return _len_of(actual) == expected
+    if op == "len_gt":
+        return _len_of(actual) > expected
+    if op == "len_lt":
+        return _len_of(actual) < expected
     return False
+
+
+def _len_of(x: Any) -> int:
+    try:
+        return len(x)
+    except TypeError:
+        return 0
 
 
 def _cond_holds(path: str, cond: Any, payload: Any) -> bool:
@@ -182,7 +214,7 @@ def evaluate(policy: dict | None, action: str, payload: Any = None) -> Decision:
                 effect=effect,
                 action=action,
                 rule=str(rule.get("name") or ""),
-                reason=str(rule.get("reason") or ""),
+                reason=rule.get("reason") or "",
             )
     return Decision(
         effect="allow" if policy.get("default") != "deny" else "deny",
