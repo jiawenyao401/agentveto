@@ -15,10 +15,24 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Debugging",
+    "Topic :: Security",
 ]
 # Zero required dependencies on purpose. sqlite3 is stdlib.
 dependencies = []
+
+# The repo, docs and issue tracker must be reachable from the PyPI page itself.
+# Most installs start from a search result, not from GitHub.
+[project.urls]
+Homepage = "https://github.com/jiawenyao401/agentveto"
+Documentation = "https://jiawenyao401.github.io/agentveto/"
+Repository = "https://github.com/jiawenyao401/agentveto"
+Issues = "https://github.com/jiawenyao401/agentveto/issues"
 
 [project.optional-dependencies]
 serve = ["fastapi>=0.100", "uvicorn>=0.20"]
