@@ -1,5 +1,10 @@
 # agentveto
 
+[![PyPI](https://img.shields.io/pypi/v/agentveto.svg)](https://pypi.org/project/agentveto/)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
+[![CI](https://github.com/jiawenyao401/agentveto/actions/workflows/ci.yml/badge.svg)](https://github.com/jiawenyao401/agentveto/actions/workflows/ci.yml)
+
 **Replay it. Prove it. Veto it.**
 
 Every other tool answers "what did my agent do?". Those tools already exist,
