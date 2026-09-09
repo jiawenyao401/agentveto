@@ -64,51 +64,65 @@ production who's been bitten by a tool firing out of policy.
 
 ### Medium (250 words, the version to actually post)
 
-Hi HN — I keep hearing the same story from teams shipping AI agents: *"we can't
-put this in front of customers, we don't know what it'll do."* Observability
-tools tell you what happened; agentveto is the layer that decides *before* it
-happens.
+> Polished 2026-09-09. The previous draft had a real bug — its policy syntax
+> (`{"path": ..., "op": ..., "value": ...}`) does not match the actual
+> `agentveto.veto` matcher. Anyone who pasted that snippet would have got a
+> `PolicyError` on first call. This version uses the real DSL (`{path: {op: v}}`)
+> and is the one to ship.
+
+```
+Hi HN — every agent tool I know tells you what your agent did. agentveto
+is a runtime layer that decides, before the call, what your agent is
+allowed to do — and stops the rest.
 
 The pitch in 30 seconds:
 
-```python
-from agentveto import guard
+    from agentveto import guard
+    POLICY = {"rules": [
+        {"action": "issue_refund",
+         "when": {"amount_usd": {"gt": 250}},
+         "effect": "ask"},
+        {"action": "send_email",
+         "when": {"to": {"endswith": "@external.com"}},
+         "effect": "deny"},
+    ]}
 
-POLICY = {
-    "rules": [
-        {"when": {"path": "amount_usd", "op": "gt", "value": 250}, "action": "issue_refund", "effect": "ask"},
-        {
-            "when": {"path": "to", "op": "endswith", "value": "@external.com"},
-            "action": "send_email",
-            "effect": "deny",
-        },
-    ]
-}
+    @guard(POLICY, action="issue_refund")
+    def issue_refund(order_id, amount_usd): ...
+    @guard(POLICY, action="send_email")
+    def send_email(to, subject, body): ...
 
+issue_refund(88213, 412)            -> VetoError, no charge fires.
+issue_refund(12345, 214)            -> runs.
+send_email("a@external.com", ...)   -> VetoError, never sent.
 
-@guard(POLICY, action="issue_refund")
-def issue_refund(order_id, amount_usd): ...
-@guard(POLICY, action="send_email")
-def send_email(to, subject, body): ...
+What happens to a blocked call? It lands as a veto span in the trace —
+same timeline, same single-file HTML report (no CDN, no login, opens on
+a plane), marked red so you can audit what was refused and why.
+
+Three layers, all stdlib + an optional `cryptography` for Ed25519:
+
+  Veto    — policy gate, ask-fails-closed when no human is attached
+  Replay  — recorded LLM responses served from disk; reruns are free
+  Prove   — hash-chained evidence + optional signed `.evd` files that
+            verify offline with no db and no SaaS
+
+What is not here, on purpose: no hosted dashboard, no dataset, no
+prompt manager. If you already run LangSmith + Helicone and only need
+observability, you don't need this. If you've ever had an agent fire a
+real action you didn't approve, read the repo.
+
+pip install agentveto. Python 3.9+, zero required deps.
+
+Repo + a 1-page walkthrough: <URL>
 ```
 
-issue_refund(88213, 412) → VetoError, the charge never fires.
-send_email("alice@external.com", ...) → VetoError, never leaves the box.
-issue_refund(12345, 214) → runs as normal.
+**Length**: ~245 words. Hook + code + narrative in 4 paragraphs.
 
-Every decision lands as a span next to the agent's LLM calls, so a blocked call
-sits in the same timeline as everything else (single-file HTML, 20KB, no CDN, no
-login, renders offline).
-
-What's *not* here, on purpose: no hosted dashboard, no dataset, no prompt
-manager. Observability tells you what happened; veto decides what gets to.
-
-MIT, zero required dependencies, ~600 lines of stdlib. Repo below, demo report
-in the README. Honest take: if you already run LangSmith + Helicone and only
-need observability, this is probably not for you. If you've ever had an agent
-fire a real action you didn't approve — read on.
-
-<URL>
+**Recommended title pairing**: ship ★1 above with this body. If ★1 doesn't
+get traction after 24h on the front page, swap to ★2 ("A 'no' button for
+your AI agent") without touching the body — that swaps mechanism for
+emotion, useful when the audience is non-devtool.
 
 ### Long (500 words, blog post / launch post version)
 
