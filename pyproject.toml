@@ -20,7 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Topic :: Software Development :: Debugging",
+    "Topic :: Software Development",
     "Topic :: Security",
 ]
 # Zero required dependencies on purpose. sqlite3 is stdlib.
