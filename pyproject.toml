@@ -59,6 +59,9 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 110
 target-version = "py39"
+# ruff 0.16 starts reformatting fenced Python inside .md; we only want
+# to lint/format real .py sources.
+extend-exclude = ["docs", "*.md"]
 
 [tool.ruff.lint]
 # Be conservative during the early-alpha stage. The CI lint job runs
