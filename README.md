@@ -22,20 +22,23 @@ pip install agentveto
 ```python
 import agentveto
 
-agentveto.init()          # wraps any installed openai / anthropic SDK
+agentveto.init()  # wraps any installed openai / anthropic SDK
+
 
 @agentveto.trace(kind="tool")
 def lookup_order(order_id: str) -> dict:
     return db.orders.find(order_id)
+
 
 @agentveto.trace
 def handle_ticket(ticket: str):
     order = lookup_order(parse_id(ticket))
     return decide(order)
 
+
 handle_ticket("two of three items never arrived")
 
-agentveto.report()        # writes agentveto-handle-ticket.html
+agentveto.report()  # writes agentveto-handle-ticket.html
 ```
 
 Open the HTML file. Every step is on a timeline, clickable, with its input,
@@ -91,22 +94,33 @@ from agentveto import guard, VetoError
 POLICY = {
     "default": "allow",
     "rules": [
-        {"name": "no-customer-email", "action": "send_email", "effect": "deny",
-         "reason": "Outbound customer email requires a human in the loop."},
-        {"name": "refund-needs-approval", "action": "issue_refund",
-         "effect": "ask", "when": {"amount_usd": {"gt": 250}},
-         "reason": "Refunds over $250 need a human approver."},
+        {
+            "name": "no-customer-email",
+            "action": "send_email",
+            "effect": "deny",
+            "reason": "Outbound customer email requires a human in the loop.",
+        },
+        {
+            "name": "refund-needs-approval",
+            "action": "issue_refund",
+            "effect": "ask",
+            "when": {"amount_usd": {"gt": 250}},
+            "reason": "Refunds over $250 need a human approver.",
+        },
     ],
 }
+
 
 @guard(POLICY, action="send_email")
 def send_email(to, subject, body): ...
 
+
 @guard(POLICY, action="issue_refund")
 def issue_refund(order_id, amount_usd): ...
 
-issue_refund("A-1", 214.50)   # under the line: runs
-issue_refund("A-1", 412.50)   # raises VetoError - no money moves
+
+issue_refund("A-1", 214.50)  # under the line: runs
+issue_refund("A-1", 412.50)  # raises VetoError - no money moves
 ```
 
 - **deny** raises `VetoError`; the wrapped function never executes.
@@ -124,8 +138,8 @@ python examples/veto_demo.py     # 3 blocked calls, no API key needed
 ## Replay: the part that matters
 
 ```python
-agentveto.init()                       # run once: records every LLM response
-agentveto.init(replay=True)            # run again: serves recorded responses
+agentveto.init()  # run once: records every LLM response
+agentveto.init(replay=True)  # run again: serves recorded responses
 ```
 
 The LLM calls come from disk; everything else - routing, tool calls, branching,
@@ -259,13 +273,13 @@ and rewrite a call before it gets vetoed at runtime. Full docs:
 
 ```python
 agentveto.init(
-    db="./traces.db",     # or set AGENTVETO_DB
-    replay=False,         # serve recorded responses instead of calling the API
-    record=True,          # store responses for later replay
-    auto_patch=True,      # wrap installed LLM SDKs
+    db="./traces.db",  # or set AGENTVETO_DB
+    replay=False,  # serve recorded responses instead of calling the API
+    record=True,  # store responses for later replay
+    auto_patch=True,  # wrap installed LLM SDKs
 )
 
-agentveto.set_pricing({"my-internal-model": (1.0, 4.0)})   # USD per 1M tokens
+agentveto.set_pricing({"my-internal-model": (1.0, 4.0)})  # USD per 1M tokens
 ```
 
 ## Status

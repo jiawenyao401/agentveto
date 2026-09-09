@@ -76,12 +76,15 @@ from agentveto import guard
 
 POLICY = {
     "rules": [
-        {"when": {"path": "amount_usd", "op": "gt", "value": 250},
-         "action": "issue_refund", "effect": "ask"},
-        {"when": {"path": "to", "op": "endswith", "value": "@external.com"},
-         "action": "send_email", "effect": "deny"},
+        {"when": {"path": "amount_usd", "op": "gt", "value": 250}, "action": "issue_refund", "effect": "ask"},
+        {
+            "when": {"path": "to", "op": "endswith", "value": "@external.com"},
+            "action": "send_email",
+            "effect": "deny",
+        },
     ]
 }
+
 
 @guard(POLICY, action="issue_refund")
 def issue_refund(order_id, amount_usd): ...

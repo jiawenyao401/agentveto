@@ -1,6 +1,6 @@
 """Three ways to use agentveto, in increasing order of magic.
 
-    AGENTVETO_DB=/tmp/ex.db python examples/basic.py
+AGENTVETO_DB=/tmp/ex.db python examples/basic.py
 """
 
 import agentveto

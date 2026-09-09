@@ -1,6 +1,6 @@
 """Run this to see what agentveto captures. No API key, no network, no account.
 
-    python examples/demo.py
+python examples/demo.py
 """
 
 import agentveto

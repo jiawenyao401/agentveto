@@ -203,12 +203,25 @@ agentveto/
 ```python
 from agentveto import guard, VetoError
 
-POLICY = {"default": "allow", "rules": [
-    {"name": "no-customer-email", "action": "send_email", "effect": "deny",
-     "reason": "Outbound email to a customer requires a human."},
-    {"name": "refund-needs-approval", "action": "issue_refund", "effect": "ask",
-     "when": {"amount_usd": {"gt": 250}}, "reason": "Over $250 needs a human."},
-]}
+POLICY = {
+    "default": "allow",
+    "rules": [
+        {
+            "name": "no-customer-email",
+            "action": "send_email",
+            "effect": "deny",
+            "reason": "Outbound email to a customer requires a human.",
+        },
+        {
+            "name": "refund-needs-approval",
+            "action": "issue_refund",
+            "effect": "ask",
+            "when": {"amount_usd": {"gt": 250}},
+            "reason": "Over $250 needs a human.",
+        },
+    ],
+}
+
 
 @guard(POLICY, action="issue_refund")
 def issue_refund(order_id, amount_usd): ...

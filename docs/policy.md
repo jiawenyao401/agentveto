@@ -9,22 +9,22 @@ or must be approved by a human.
 
 ```python
 POLICY = {
-    "default": "allow",            # what happens when no rule matches
+    "default": "allow",  # what happens when no rule matches
     "rules": [
         {
-            "name":   "no-customer-email",     # recorded in the trace
-            "action": "send_email",           # exact, "send_*", or "*"
-            "effect": "deny",                 # allow | deny | ask
-            "when": {                         # optional: all must hold
+            "name": "no-customer-email",  # recorded in the trace
+            "action": "send_email",  # exact, "send_*", or "*"
+            "effect": "deny",  # allow | deny | ask
+            "when": {  # optional: all must hold
                 "to": {"endswith": "@external.com"},
             },
-            "reason": "External recipients blocked.",   # or {"en": ..., "zh": ...}
+            "reason": "External recipients blocked.",  # or {"en": ..., "zh": ...}
         },
         {
-            "name":   "big-refund",
+            "name": "big-refund",
             "action": "issue_refund",
             "effect": "ask",
-            "when":   {"amount_usd": {"gt": 250}},
+            "when": {"amount_usd": {"gt": 250}},
             "reason": "Refunds > $250 need approval.",
         },
     ],
@@ -120,6 +120,7 @@ agentveto policy explain policy.json --action send_email \
 import agentveto.policy_io as pio
 
 policy = pio.load_policy("policy.json")
+
 
 @agentveto.guard(policy, action="send_email")
 def send_email(to, subject, body): ...

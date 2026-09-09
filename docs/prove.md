@@ -112,11 +112,11 @@ from agentveto import prove
 
 private_pem, public_b64 = prove.keygen()
 
-prove.sign_db("agentveto.db", private_pem)                 # chain + sign
-prove.verify_db("agentveto.db")                            # -> Verification
+prove.sign_db("agentveto.db", private_pem)  # chain + sign
+prove.verify_db("agentveto.db")  # -> Verification
 
 path = prove.export_evidence("agentveto.db", run_id, private_pem, out="incident.evd")
-prove.verify_evidence_file(path)                           # -> Verification
+prove.verify_evidence_file(path)  # -> Verification
 ```
 
 `Verification` is a small dataclass — `ok`, plus a `checks` list of
@@ -134,7 +134,7 @@ Signing a single run's evidence includes everything before it — you cannot
 attest to run 7 without attesting to runs 1–6:
 
 ```python
-prove.sign_db("agentveto.db", private_pem, run_id="run_abc")   # chain up to run_abc
+prove.sign_db("agentveto.db", private_pem, run_id="run_abc")  # chain up to run_abc
 ```
 
 ## Design choices
