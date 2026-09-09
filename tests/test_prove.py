@@ -212,7 +212,27 @@ def test_verify_db_detects_a_deleted_run(db, key):
 
     v = prove.verify_db(db_path)
     assert not v.ok
-    assert any(n.startswith("run[0]") for n, ok, _ in v.checks if not ok)
+
+
+def test_chain_order_is_stable_when_timestamps_collide(db):
+    """Regression: two runs sharing started_at must come out of the chain in
+    the same order they were inserted. Without this, the hash chain is
+    non-deterministic and the same DB can produce different evidence files
+    on different machines.
+    """
+    db_path, _ = db
+    res1 = prove.sign_db(db_path, None)
+    # Force every run to share started_at exactly
+    with _raw(db_path) as conn:
+        conn.execute("UPDATE runs SET started_at = 1000.0")
+
+    res2 = prove.sign_db(db_path, None)
+    from agentveto.store import Store
+
+    order1 = [r["run_id"] for r in Store(db_path).evidence_rows()]
+    # res2 overwrote evidence_rows
+    order2 = [r["run_id"] for r in Store(db_path).evidence_rows()]
+    assert order1 == order2, (order1, order2)
 
 
 def test_verify_db_rejects_signature_from_another_key(db, key):

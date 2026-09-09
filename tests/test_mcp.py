@@ -16,7 +16,12 @@ import tempfile
 
 import pytest
 
-from agentveto import mcp as mcp_module
+# The MCP SDK is only installed under [dev] (and only resolvable on py>=3.10).
+# On 3.9 CI we still want this file to collect + skip cleanly rather than error
+# at import time.
+mcp_sdk = pytest.importorskip("mcp", reason="mcp SDK not installed (3.10+ extra)")
+
+from agentveto import mcp as mcp_module  # noqa: E402
 
 
 P = {

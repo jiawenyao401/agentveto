@@ -16,11 +16,10 @@ Usage:
 Requires: playwright + chromium already installed (pip install playwright;
 playwright install chromium).
 """
+
 from __future__ import annotations
 
-import os
 import sys
-import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,6 +30,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 def ensure_demos() -> tuple[Path, Path]:
     """Make sure the two canonical demo reports exist on disk."""
     import agentveto
+
     v0 = Path(agentveto.demo(out=None))
     veto = Path(agentveto.demo_veto(out=None))
     return v0, veto
@@ -38,6 +38,7 @@ def ensure_demos() -> tuple[Path, Path]:
 
 def shoot(url: str, out: Path, *, w: int, h: int, clip: dict | None = None) -> None:
     from playwright.sync_api import sync_playwright
+
     with sync_playwright() as p:
         browser = p.chromium.launch()
         ctx = browser.new_context(viewport={"width": w, "height": h}, device_scale_factor=2)
@@ -52,12 +53,13 @@ def shoot(url: str, out: Path, *, w: int, h: int, clip: dict | None = None) -> N
             kwargs["full_page"] = False
         page.screenshot(**kwargs)
         browser.close()
-    print(f"  wrote {out.relative_to(ROOT)}  ({out.stat().st_size//1024} KB)")
+    print(f"  wrote {out.relative_to(ROOT)}  ({out.stat().st_size // 1024} KB)")
 
 
 def composite(fg: Path, bg: Path, out: Path, *, label: str, label_color=(20, 24, 32)) -> None:
     """Stack the demo screenshot on top of a labeled backdrop, save hero PNG."""
     from PIL import Image, ImageDraw, ImageFont
+
     img = Image.open(fg).convert("RGBA")
     canvas_w, canvas_h = 1600, 900
     bg_img = Image.new("RGB", (canvas_w, canvas_h), (245, 247, 250))
@@ -81,7 +83,7 @@ def composite(fg: Path, bg: Path, out: Path, *, label: str, label_color=(20, 24,
     draw.rectangle([(24, 24), (24 + 360, 70)], fill=(255, 255, 255), outline=label_color, width=1)
     draw.text((36, 34), label, fill=label_color, font=font)
     bg_img.save(out, "PNG", optimize=True)
-    print(f"  hero -> {out.relative_to(ROOT)}  ({out.stat().st_size//1024} KB)")
+    print(f"  hero -> {out.relative_to(ROOT)}  ({out.stat().st_size // 1024} KB)")
 
 
 def main() -> int:
@@ -95,10 +97,8 @@ def main() -> int:
     shoot(str(veto), raw_veto, w=1400, h=900)
 
     print("\ncomposing hero cards...")
-    composite(raw_v0, None, OUT / "hero.png",
-              label="agentveto · Replay it.")
-    composite(raw_veto, None, OUT / "hero-veto.png",
-              label="agentveto · Prove it. Veto it.")
+    composite(raw_v0, None, OUT / "hero.png", label="agentveto · Replay it.")
+    composite(raw_veto, None, OUT / "hero-veto.png", label="agentveto · Prove it. Veto it.")
 
     # Cleanup intermediates
     raw_v0.unlink(missing_ok=True)

@@ -256,9 +256,11 @@ class Store:
         return runs[0] if runs else None
 
     def list_runs_asc(self) -> list[dict]:
-        """All runs in chain order (oldest first). Stable tie-break on id so the
-        evidence chain is deterministic even if two runs share a timestamp."""
-        rows = self.conn.execute("SELECT * FROM runs ORDER BY started_at ASC, id ASC").fetchall()
+        """All runs in chain order (oldest first). SQLite ``rowid`` is the
+        monotonic insertion order assigned by the engine, which is the only
+        tie-break that survives two runs sharing a ``started_at`` (random
+        hex ``id`` would otherwise scramble the chain)."""
+        rows = self.conn.execute("SELECT * FROM runs ORDER BY rowid ASC").fetchall()
         return [dict(r) for r in rows]
 
     def save_evidence(

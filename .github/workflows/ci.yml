@@ -22,9 +22,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install
+        # 3.9 only gets dev-core. openai + mcp both require >=3.10;
+        # tests that need them are auto-skipped when those imports fail.
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          if [[ "${{ matrix.python-version }}" == "3.9" ]]; then
+            pip install -e ".[dev-core]"
+          else
+            pip install -e ".[dev]"
+          fi
       - name: Test
         run: pytest -q
 
@@ -35,10 +41,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v1
         with:
-          args: "check agentveto tests"
+          args: "check ."
       - uses: astral-sh/ruff-action@v1
         with:
-          args: "format --check agentveto tests"
+          args: "format --check ."
 
   docs:
     name: docs build
