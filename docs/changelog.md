@@ -8,6 +8,38 @@ All notable changes to agentveto are documented here. The format follows
 
 ### Added
 
+- **V2 "Prove": tamper-evident, signed evidence.** New `agentveto/prove.py`
+  turns recorded runs into evidence an auditor can verify offline.
+  - Canonical (sorted-key, compact) SHA-256 digest of every run: the run row
+    plus all its spans, ordered by `seq`, hashed exactly as stored.
+  - Runs are linked into a hash chain anchored at a genesis value, so each block
+    transitively covers the whole history.
+  - Optional Ed25519 signing of the chain head via `cryptography`. Because the
+    head covers every earlier block, one signature authenticates everything.
+    Install with `pip install 'agentveto[sign]'`.
+  - Portable `.evd` evidence files: embed the target run's full data plus the
+    digest chain, so a third party verifies with the file alone — no database,
+    no network, no account.
+  - Tamper detection that names its target: editing one byte in one span makes
+    verification fail and report which run is wrong.
+- `agentveto prove {keygen,sign,export}` and `agentveto verify` CLI commands.
+  `verify` takes an `.evd` file, a `.db` file, or a directory; exits `0`/`1` so
+  it drops into CI.
+- Python API: `keygen`, `sign_db`, `export_evidence`, `verify_db`,
+  `verify_evidence`, `verify_evidence_file`, and a `Verification` dataclass
+  exposing `ok` plus per-check `(name, ok, detail)`.
+- New `evidence` table in the SQLite schema (pos, run_id, prev_hash,
+  run_digest, hash, signature, public_key, signed_at). Written only by
+  `prove sign` — never by the tracing hot path.
+
+### Notes
+
+- Prove is integrity for what was recorded, not proof that the record is true.
+  Anyone with write access *before* you sign can sign an edited record, so sign
+  at the moment you want to freeze it. Documented in `docs/prove.md`.
+- The chain is linear rather than a Merkle tree, deliberately: for one process's
+  run history that is the right size.
+- Formatting normalized to current `ruff format`, which the CI lint job enforces.
 - V1 preview: `@guard(policy, action="...")` runtime policy gate. Deny,
   ask-with-fail-closed, plain-dict policy with `when` clauses over dot
   paths. Every decision is written into the trace as a span attribute and

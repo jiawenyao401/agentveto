@@ -20,6 +20,13 @@ agentveto-*.html
 site/
 docs/img/_*.png
 
+# Evidence exports and signing keys.
+# The private key must never be committed - it is the whole basis of Prove's
+# authenticity guarantee. The .pub file is safe to share.
+*.evd
+agentveto.key
+keys/
+
 .DS_Store
 .idea/
 .vscode/

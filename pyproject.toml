@@ -23,7 +23,10 @@ dependencies = []
 [project.optional-dependencies]
 serve = ["fastapi>=0.100", "uvicorn>=0.20"]
 mcp = ["mcp>=1.0,<2"]
-dev = ["pytest>=7.0", "fastapi>=0.100", "uvicorn>=0.20", "httpx>=0.24", "openai>=1.0", "mcp>=1.0,<2"]
+# Ed25519 signing for the Prove layer. The integrity chain (hash chain + verify)
+# works with zero deps; this extra only adds asymmetric, third-party verification.
+sign = ["cryptography>=41"]
+dev = ["pytest>=7.0", "fastapi>=0.100", "uvicorn>=0.20", "httpx>=0.24", "openai>=1.0", "mcp>=1.0,<2", "cryptography>=41"]
 docs = ["mkdocs>=1.6", "mkdocs-material>=9.0"]
 
 [project.scripts]

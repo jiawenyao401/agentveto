@@ -68,6 +68,24 @@ CREATE TABLE IF NOT EXISTS recordings (
     response    TEXT NOT NULL,
     created_at  REAL NOT NULL
 );
+
+-- Prove layer: an explicit, hash-chained attestation of recorded runs.
+-- One row per run in chain order. ``hash`` links to ``prev_hash`` so any
+-- later edit to a covered run/span is detectable. ``signature`` (base64
+-- Ed25519) and ``public_key`` are set only when the chain head was signed.
+-- This table is written on demand (``agentveto prove sign``), never by the
+-- tracing hot path, so recording stays fast and stdlib-only.
+CREATE TABLE IF NOT EXISTS evidence (
+    pos          INTEGER PRIMARY KEY,
+    run_id       TEXT NOT NULL,
+    prev_hash    TEXT NOT NULL,
+    run_digest   TEXT NOT NULL,
+    hash         TEXT NOT NULL,
+    signature    TEXT,
+    public_key   TEXT,
+    signed_at    REAL
+);
+CREATE INDEX IF NOT EXISTS idx_evidence_run ON evidence(run_id);
 """
 
 # A flight recorder stores everything, but a single pathological 8MB prompt
@@ -226,20 +244,55 @@ class Store:
         return dict(row) if row else None
 
     def get_spans(self, run_id: str) -> list[dict]:
-        rows = self.conn.execute(
-            "SELECT * FROM spans WHERE run_id=? ORDER BY seq", (run_id,)
-        ).fetchall()
+        rows = self.conn.execute("SELECT * FROM spans WHERE run_id=? ORDER BY seq", (run_id,)).fetchall()
         return [dict(r) for r in rows]
 
     def list_runs(self, limit: int = 50) -> list[dict]:
-        rows = self.conn.execute(
-            "SELECT * FROM runs ORDER BY started_at DESC LIMIT ?", (limit,)
-        ).fetchall()
+        rows = self.conn.execute("SELECT * FROM runs ORDER BY started_at DESC LIMIT ?", (limit,)).fetchall()
         return [dict(r) for r in rows]
 
     def latest_run(self) -> dict | None:
         runs = self.list_runs(limit=1)
         return runs[0] if runs else None
+
+    def list_runs_asc(self) -> list[dict]:
+        """All runs in chain order (oldest first). Stable tie-break on id so the
+        evidence chain is deterministic even if two runs share a timestamp."""
+        rows = self.conn.execute("SELECT * FROM runs ORDER BY started_at ASC, id ASC").fetchall()
+        return [dict(r) for r in rows]
+
+    def save_evidence(
+        self,
+        blocks: list[dict],
+        *,
+        signature: str | None = None,
+        public_key: str | None = None,
+        signed_at: float | None = None,
+    ) -> None:
+        """Persist an attested chain. ``signature``/``public_key`` are stored on
+        every row (same value) so a DB verification is self-contained."""
+        with self._lock:
+            self.conn.execute("DELETE FROM evidence")
+            for b in blocks:
+                self.conn.execute(
+                    "INSERT INTO evidence (pos, run_id, prev_hash, run_digest, hash,"
+                    " signature, public_key, signed_at) VALUES (?,?,?,?,?,?,?,?)",
+                    (
+                        b["pos"],
+                        b["run_id"],
+                        b["prev_hash"],
+                        b["run_digest"],
+                        b["hash"],
+                        signature,
+                        public_key,
+                        signed_at,
+                    ),
+                )
+            self.conn.commit()
+
+    def evidence_rows(self) -> list[dict]:
+        rows = self.conn.execute("SELECT * FROM evidence ORDER BY pos ASC").fetchall()
+        return [dict(r) for r in rows]
 
     def save_recording(self, key: str, provider: str, model: str | None, request: Any, response: str) -> None:
         with self._lock:

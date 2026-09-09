@@ -14,8 +14,10 @@ pip install agentveto
 
 ## Where to go next
 
-- [Policy language](policy.md) - what `@veto, action=...)` accepts,
+- [Policy language](policy.md) - what `@guard(policy, action=...)` accepts,
   what the rules look like, how `when` clauses work.
+- [Prove (evidence)](prove.md) - hash-chained, optionally Ed25519-signed runs,
+  and portable `.evd` files an auditor can verify offline.
 - [MCP server](mcp.md) - expose the policy engine to Claude Code,
   Cursor and other MCP-aware editors.
 - [Launch kit](launch.md) - the Show HN / Reddit post draft, comment

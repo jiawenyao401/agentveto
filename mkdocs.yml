@@ -31,6 +31,7 @@ theme:
 nav:
   - Home: index.md
   - Policy language: policy.md
+  - Prove (evidence): prove.md
   - MCP server: mcp.md
   - Launch kit: launch.md
   - Why Python (not Rust): rust-decision.md

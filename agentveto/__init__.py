@@ -6,8 +6,18 @@ optional. Nothing here requires a network call, an API key, or an account.
 
 from __future__ import annotations
 
-from . import pricing, veto
+from . import pricing, prove, veto
 from ._version import __version__
+from .prove import (
+    ProverError,
+    Verification,
+    export_evidence,
+    keygen,
+    sign_db,
+    verify_db,
+    verify_evidence,
+    verify_evidence_file,
+)
 from .report import build_report_data, render_html, report
 from .store import Store
 from .tracer import Run, Span, Tracer
@@ -36,6 +46,15 @@ __all__ = [
     "Tracer",
     "Span",
     "Run",
+    "keygen",
+    "sign_db",
+    "export_evidence",
+    "verify_evidence",
+    "verify_evidence_file",
+    "verify_db",
+    "Verification",
+    "ProverError",
+    "prove",
 ]
 
 _tracer: Tracer | None = None
@@ -58,9 +77,7 @@ def init(
     which is what makes an old run reproducible.
     """
     global _tracer
-    _tracer = Tracer(
-        db, replay=replay, record=record, enabled=enabled, auto_patch=auto_patch
-    )
+    _tracer = Tracer(db, replay=replay, record=record, enabled=enabled, auto_patch=auto_patch)
     return _tracer
 
 

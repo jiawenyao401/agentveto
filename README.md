@@ -76,6 +76,7 @@ python scripts/make_assets.py
 | **Cost attribution** | Per-step and per-run, using a pricing table you can override. Unknown models are reported as unknown rather than guessed. |
 | **Record and replay** | First run records LLM responses. `init(replay=True)` replays them, so a 40-step run is reproducible for free. |
 | **Policy gates** | `@guard` evaluates a call *before* it runs and can deny it or route it to a human. Blocked calls are on the record like everything else. |
+| **Tamper-evident evidence** | `prove sign` chains every run's digest and optionally signs it with Ed25519. `verify` detects a single changed byte and names the run it is in. |
 | **Self-contained reports** | One HTML file, no CDN, no build step. Renders offline, six months from now, on a plane. |
 | **Nothing leaves your machine** | Traces are written to `./agentveto.db`. There is no server component. |
 
@@ -134,6 +135,47 @@ free, because you stop paying for steps 1-36.
 
 Streaming responses are traced but not replayable yet.
 
+## Prove: evidence you can hand to an auditor
+
+A trace in a SQLite file is only as trustworthy as whoever controls the file.
+`prove` turns a run into evidence: a canonical digest chained across runs,
+optionally signed with Ed25519, exportable as one portable file that anyone can
+verify offline - without your database and without your secret key.
+
+```bash
+agentveto prove keygen -o ./keys                            # agentveto.key + agentveto.pub
+agentveto prove sign --db agentveto.db --key ./keys/agentveto.key
+agentveto prove export --db agentveto.db --run <run-id> -o incident.evd
+
+agentveto verify incident.evd       # the auditor's path: offline, no db needed
+agentveto verify agentveto.db       # or: is my own store still untouched?
+```
+
+```
+OK      ok
+  [ok] target_run_digest   data matches attested digest
+  [ok] chain               ok
+  [ok] head_anchor         ok
+  [ok] signature           valid
+```
+
+Two layers, on purpose:
+
+- **Integrity** (zero dependencies, always on): every run gets a SHA-256 digest
+  of its stored rows, and runs are linked into a hash chain from a genesis
+  value. Change one byte in one span and verification fails, naming the run.
+- **Authenticity** (optional, `pip install 'agentveto[sign]'`): an Ed25519 key
+  signs the chain head, so a third party can verify the whole history without
+  holding your key.
+
+Signing is a deliberate act, not ambient tracing - you sign when you want to
+lock in the record. That keeps recording fast and dependency-free.
+
+**Honest limits:** this proves the integrity of what was recorded, not that the
+recording is true. Anyone who edits the database *before* you sign edits the
+evidence too, so sign at the moment that matters. The chain is linear rather
+than a Merkle tree: the right size for one process's history.
+
 ## How this compares
 
 Recording is a crowded space. Here is the honest map:
@@ -146,7 +188,8 @@ Recording is a crowded space. Here is the honest map:
 | Single-file report you can email | yes | no | no | no | no |
 | Deterministic replay of LLM calls | yes | yes | no | no | no |
 | Runtime policy enforcement | yes (V1 preview) | no | no | no | no |
-| Tamper-evident evidence chain | on roadmap | no | yes | no | no |
+| Tamper-evident evidence chain | yes (v2 preview) | no | yes | no | no |
+| Signed, portable evidence file | yes (`.evd`) | no | no | no | no |
 
 Nobody in the Python ecosystem does enforcement yet. Recording tells you what
 went wrong; a veto point stops it from going wrong. The preview of that is in
@@ -162,8 +205,10 @@ machine.
 1. **Replay** (done) - deterministic reproduction of any run, locally, for free.
 2. **Veto** (done, preview) - a policy gate that evaluates a step *before* it
    executes and can block it or route it to a human. The part nobody else has.
-3. **Prove** (next) - hash-chained, signed traces so a run can be handed to an
-   auditor as evidence, not as a screenshot.
+3. **Prove** (done, preview) - hash-chained, optionally signed traces so a run
+   can be handed to an auditor as evidence, not as a screenshot.
+4. **Responsibility credentials** (next) - bind an attested run to who authorised
+   the agent, so "the agent did it" has a named human behind it.
 
 ## CLI
 
@@ -178,6 +223,13 @@ agentveto serve                # local viewer (pip install 'agentveto[serve]')
 agentveto policy show policy.json
 agentveto policy validate policy.json --strict
 agentveto policy explain policy.json --action send_email --payload '{"to":"x@y.com"}'
+
+# evidence (pip install 'agentveto[sign]' to enable Ed25519 signing)
+agentveto prove keygen -o ./keys
+agentveto prove sign --db agentveto.db --key ./keys/agentveto.key
+agentveto prove export --db agentveto.db --run <run-id> -o incident.evd
+agentveto verify incident.evd
+agentveto verify agentveto.db
 ```
 
 ## MCP server (Claude Code, Cursor, ...)
