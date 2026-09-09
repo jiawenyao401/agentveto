@@ -22,6 +22,7 @@ def latest_spans(tracer):
 
 # ---------------------------------------------------------------- basics
 
+
 def test_decorator_creates_implicit_run(tracer):
     @tracer.trace
     def add(a, b):
@@ -76,6 +77,7 @@ def test_disabled_tracer_records_nothing(tmp_path):
 
 # ---------------------------------------------------------------- money
 
+
 def test_cost_is_computed_from_the_pricing_table(tracer):
     with tracer.start_run("r"):
         with tracer.start_span("llm", kind="llm") as s:
@@ -120,6 +122,7 @@ def test_run_totals_aggregate_child_spans(tracer):
 
 # ---------------------------------------------------------------- failure
 
+
 def test_errors_are_recorded_and_do_not_swallow_the_exception(tracer):
     with pytest.raises(ValueError):
         with tracer.start_span("boom") as s:
@@ -139,6 +142,7 @@ def test_failed_run_is_marked(tracer):
 
 
 # ---------------------------------------------------------------- replay
+
 
 def test_request_key_is_deterministic_and_content_sensitive():
     a = request_key("openai", "gpt-4o", {"messages": [{"role": "user", "content": "hi"}]})
@@ -164,6 +168,7 @@ def test_recordings_round_trip(tmp_path):
 
 
 # ---------------------------------------------------------------- report
+
 
 def test_report_is_written_and_self_contained(tracer, tmp_path):
     with tracer.start_run("support-agent / refund"):
@@ -196,8 +201,8 @@ def test_payloads_cannot_break_out_of_the_viewer(tracer, tmp_path):
     out = write_report(store=tracer.store, out=str(tmp_path / "x.html"))
     html = open(out, encoding="utf-8").read()
 
-    assert "alert(1)" in html              # the content is preserved
-    assert "<\\/script>" in html           # but it cannot terminate the script block
+    assert "alert(1)" in html  # the content is preserved
+    assert "<\\/script>" in html  # but it cannot terminate the script block
 
 
 def test_report_on_empty_database_exits_cleanly(tmp_path):

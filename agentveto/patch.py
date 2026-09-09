@@ -20,7 +20,6 @@ import json
 from typing import Any
 
 
-
 def _jsonable(value: Any) -> Any:
     """Drop anything json cannot encode. Never raise."""
     try:
@@ -48,6 +47,7 @@ def request_key(provider: str, model: str | None, payload: dict) -> str:
 # --------------------------------------------------------------------------
 # Per-provider adapters
 # --------------------------------------------------------------------------
+
 
 def _openai_messages(payload: dict) -> Any:
     return payload.get("messages") or payload.get("input")
@@ -105,6 +105,7 @@ def _rebuild(response_cls: Any, blob: str, original: Any):
 # --------------------------------------------------------------------------
 # Wrapper factory
 # --------------------------------------------------------------------------
+
 
 def _wrap(tracer, original, *, provider, label, response_cls, prompt_of, result_of, is_async):
     if getattr(original, "_agentveto_patched", False):
@@ -228,6 +229,7 @@ def patch_all(tracer) -> list[str]:
     # --- OpenAI chat completions ---
     try:
         from openai.types.chat import ChatCompletion  # noqa: F401
+
         chat_response_cls = ChatCompletion
     except Exception:
         chat_response_cls = None
@@ -249,6 +251,7 @@ def patch_all(tracer) -> list[str]:
     # --- OpenAI responses API (newer SDKs) ---
     try:
         from openai.types.responses import Response  # noqa: F401
+
         responses_cls = Response
     except Exception:
         responses_cls = None
@@ -270,6 +273,7 @@ def patch_all(tracer) -> list[str]:
     # --- Anthropic messages ---
     try:
         from anthropic.types import Message  # noqa: F401
+
         anthropic_response_cls = Message
     except Exception:
         anthropic_response_cls = None

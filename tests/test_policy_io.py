@@ -19,15 +19,27 @@ from agentveto.policy_io import (
 POLICY = {
     "default": "allow",
     "rules": [
-        {"name": "no-marketing", "action": "send_email", "effect": "deny",
-         "reason": "No marketing email without a human."},
-        {"name": "big-refund", "action": "issue_refund", "effect": "ask",
-         "when": {"amount_usd": {"gt": 250}}, "reason": "Refunds > $250 need approval."},
-        {"name": "export-pii", "action": "export_pii", "effect": "deny",
-         "reason": "PII export is blocked."},
-        {"name": "external-mail", "action": "send_*", "effect": "deny",
-         "when": {"to": {"endswith": "@external.com"}},
-         "reason": "External recipients blocked."},
+        {
+            "name": "no-marketing",
+            "action": "send_email",
+            "effect": "deny",
+            "reason": "No marketing email without a human.",
+        },
+        {
+            "name": "big-refund",
+            "action": "issue_refund",
+            "effect": "ask",
+            "when": {"amount_usd": {"gt": 250}},
+            "reason": "Refunds > $250 need approval.",
+        },
+        {"name": "export-pii", "action": "export_pii", "effect": "deny", "reason": "PII export is blocked."},
+        {
+            "name": "external-mail",
+            "action": "send_*",
+            "effect": "deny",
+            "when": {"to": {"endswith": "@external.com"}},
+            "reason": "External recipients blocked.",
+        },
     ],
 }
 
@@ -62,12 +74,14 @@ def test_reject_bad_effect():
 
 def test_reject_duplicate_name():
     with pytest.raises(PolicyError, match="duplicate name"):
-        load_policy_from_dict({
-            "rules": [
-                {"name": "x", "action": "a", "effect": "deny"},
-                {"name": "x", "action": "b", "effect": "deny"},
-            ]
-        })
+        load_policy_from_dict(
+            {
+                "rules": [
+                    {"name": "x", "action": "a", "effect": "deny"},
+                    {"name": "x", "action": "b", "effect": "deny"},
+                ]
+            }
+        )
 
 
 def test_reject_empty_name():
@@ -77,9 +91,7 @@ def test_reject_empty_name():
 
 def test_reject_unknown_operator():
     with pytest.raises(PolicyError, match="unknown operator"):
-        load_policy_from_dict({"rules": [
-{"name": "x", "effect": "deny", "when": {"a": {"near": 1}}}
-]})
+        load_policy_from_dict({"rules": [{"name": "x", "effect": "deny", "when": {"a": {"near": 1}}}]})
 
 
 def test_save_load_roundtrip():
@@ -144,8 +156,7 @@ def test_explain_endswith_no_match():
 
 
 def test_explain_payload_as_string():
-    P = {"default": "allow", "rules": [{"action": "x", "effect": "deny",
-                                          "when": {"value": {"len_gt": 5}}}]}
+    P = {"default": "allow", "rules": [{"action": "x", "effect": "deny", "when": {"value": {"len_gt": 5}}}]}
     e = explain(P, "x", "this is a long string")  # wrapped as {"value": ...}
     assert e.decision.effect == "deny"
 
@@ -165,31 +176,37 @@ def test_explain_as_dict_roundtrip():
 
 def test_string_endswith_in_evaluate():
     from agentveto.veto import evaluate
-    P = {"rules": [{"name": "x", "action": "send_*", "effect": "deny",
-                    "when": {"to": {"endswith": "@external.com"}}}]}
+
+    P = {
+        "rules": [
+            {"name": "x", "action": "send_*", "effect": "deny", "when": {"to": {"endswith": "@external.com"}}}
+        ]
+    }
     assert evaluate(P, "send_email", {"to": "a@external.com"}).effect == "deny"
     assert evaluate(P, "send_email", {"to": "a@internal.com"}).effect == "allow"
 
 
 def test_string_startswith_in_evaluate():
     from agentveto.veto import evaluate
-    P = {"rules": [{"name": "x", "action": "*", "effect": "deny",
-                    "when": {"name": {"startswith": "admin"}}}]}
+
+    P = {"rules": [{"name": "x", "action": "*", "effect": "deny", "when": {"name": {"startswith": "admin"}}}]}
     assert evaluate(P, "y", {"name": "admin_user"}).effect == "deny"
     assert evaluate(P, "y", {"name": "user"}).effect == "allow"
 
 
 def test_string_contains_in_evaluate():
     from agentveto.veto import evaluate
-    P = {"rules": [{"name": "x", "action": "*", "effect": "deny",
-                    "when": {"body": {"contains": "password"}}}]}
+
+    P = {
+        "rules": [{"name": "x", "action": "*", "effect": "deny", "when": {"body": {"contains": "password"}}}]
+    }
     assert evaluate(P, "send", {"body": "your password is ..."}).effect == "deny"
     assert evaluate(P, "send", {"body": "no secrets here"}).effect == "allow"
 
 
 def test_len_operators_in_evaluate():
     from agentveto.veto import evaluate
-    P = {"rules": [{"name": "x", "action": "*", "effect": "deny",
-                    "when": {"body": {"len_gt": 100}}}]}
+
+    P = {"rules": [{"name": "x", "action": "*", "effect": "deny", "when": {"body": {"len_gt": 100}}}]}
     assert evaluate(P, "send", {"body": "x" * 200}).effect == "deny"
     assert evaluate(P, "send", {"body": "short"}).effect == "allow"

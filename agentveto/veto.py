@@ -49,8 +49,22 @@ from typing import Any, Callable
 from .i18n import localize as _localize
 
 EFFECTS = ("allow", "deny", "ask")
-OPS = {"eq", "ne", "gt", "gte", "lt", "lte", "in", "exists",
-       "endswith", "startswith", "contains", "len_eq", "len_gt", "len_lt"}
+OPS = {
+    "eq",
+    "ne",
+    "gt",
+    "gte",
+    "lt",
+    "lte",
+    "in",
+    "exists",
+    "endswith",
+    "startswith",
+    "contains",
+    "len_eq",
+    "len_gt",
+    "len_lt",
+}
 
 _MISSING = object()
 
@@ -88,6 +102,7 @@ class VetoError(Exception):
 
 
 # ---------------------------------------------------------------- matching
+
 
 def _action_match(want: str, action: str) -> bool:
     if want == "*":
@@ -195,6 +210,7 @@ def _rule_matches(rule: dict, action: str, payload: Any) -> bool:
 
 # ---------------------------------------------------------------- evaluate
 
+
 def evaluate(policy: dict | None, action: str, payload: Any = None) -> Decision:
     """Return the decision for one action. Pure and deterministic.
 
@@ -223,6 +239,7 @@ def evaluate(policy: dict | None, action: str, payload: Any = None) -> Decision:
 
 
 # ---------------------------------------------------------------- guard
+
 
 def _bind_payload(fn: Callable, args: tuple, kwargs: dict) -> dict:
     """Map positional args onto parameter names so policy 'when' fields are
@@ -310,9 +327,7 @@ def guard(
                     return payload, decision, "allow"
                 note = " - approval declined (fail closed)"
                 reason = decision.reason + note if decision.reason else "approval declined (fail closed)"
-                raise VetoError(
-                    Decision("ask", action=act, rule=decision.rule, reason=reason)
-                )
+                raise VetoError(Decision("ask", action=act, rule=decision.rule, reason=reason))
             raise VetoError(decision)
 
         def _mark(span: Any, payload: dict, decision: Decision, resolved: str) -> None:
@@ -367,4 +382,3 @@ def guard(
         return wrapper
 
     return decorate
-

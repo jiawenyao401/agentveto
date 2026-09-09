@@ -11,6 +11,7 @@ Lookup order:
 2. the first two letters of `LANG` (e.g. "zh_CN.UTF-8" -> "zh")
 3. "en"
 """
+
 from __future__ import annotations
 
 import os

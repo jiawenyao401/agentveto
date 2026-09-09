@@ -13,6 +13,7 @@ Run with:
 If no policy file is passed, every tool accepts the policy as a JSON string
 argument so the client can change policy at runtime.
 """
+
 from __future__ import annotations
 
 import json
@@ -31,8 +32,7 @@ try:
     from mcp.server.fastmcp import FastMCP
 except ImportError as exc:
     raise SystemExit(
-        "agentveto's MCP server needs the 'mcp' package.\n"
-        "Install it with: pip install 'agentveto[mcp]'"
+        "agentveto's MCP server needs the 'mcp' package.\nInstall it with: pip install 'agentveto[mcp]'"
     ) from exc
 
 
@@ -66,8 +66,7 @@ def build_server(initial_policy: dict | None = None) -> FastMCP:
     state = {"policy": initial_policy}
 
     @mcp.tool()
-    def evaluate_policy(action: str, payload: dict | str = "{}",
-                        policy: dict | str | None = None) -> dict:
+    def evaluate_policy(action: str, payload: dict | str = "{}", policy: dict | str | None = None) -> dict:
         """Evaluate one action against a policy and return the decision.
 
         Args:
@@ -77,8 +76,12 @@ def build_server(initial_policy: dict | None = None) -> FastMCP:
         """
         p = _coerce_policy(policy) if policy is not None else state["policy"]
         if p is None:
-            return {"effect": "allow", "action": action, "rule": "",
-                    "note": "no policy loaded; pass --policy or use policy arg"}
+            return {
+                "effect": "allow",
+                "action": action,
+                "rule": "",
+                "note": "no policy loaded; pass --policy or use policy arg",
+            }
         d = evaluate_policy_fn(p, action, _parse_payload(payload))
         return {
             "effect": d.effect,
@@ -89,8 +92,7 @@ def build_server(initial_policy: dict | None = None) -> FastMCP:
         }
 
     @mcp.tool()
-    def explain_policy(action: str, payload: dict | str = "{}",
-                       policy: dict | str | None = None) -> dict:
+    def explain_policy(action: str, payload: dict | str = "{}", policy: dict | str | None = None) -> dict:
         """Explain which rule would fire for one action and why.
 
         Returns per-rule match verdicts with the path-level detail, plus
@@ -131,9 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         prog="agentveto-mcp",
         description="MCP server exposing the agentveto policy engine.",
     )
-    parser.add_argument(
-        "--policy", "-p", help="JSON policy file to load at startup"
-    )
+    parser.add_argument("--policy", "-p", help="JSON policy file to load at startup")
     args = parser.parse_args(argv)
 
     initial: dict | None = None

@@ -37,17 +37,39 @@ class _NullSpan:
 
     id = None
 
-    def set_model(self, model): return self
-    def set_usage(self, tin=0, tout=0): return self
-    def set_io(self, input=None, output=None): return self
-    def set_error(self, exc): return self
-    def end(self, **kw): return None
-    def __enter__(self): return self
-    def __exit__(self, *a): return False
+    def set_model(self, model):
+        return self
+
+    def set_usage(self, tin=0, tout=0):
+        return self
+
+    def set_io(self, input=None, output=None):
+        return self
+
+    def set_error(self, exc):
+        return self
+
+    def end(self, **kw):
+        return None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
 
 
 class Span:
-    def __init__(self, tracer: "Tracer", span_id: str, run_id: str, name: str, kind: str, started_at: float, attributes: dict | None = None):
+    def __init__(
+        self,
+        tracer: "Tracer",
+        span_id: str,
+        run_id: str,
+        name: str,
+        kind: str,
+        started_at: float,
+        attributes: dict | None = None,
+    ):
         self.tracer = tracer
         self.id = span_id
         self.run_id = run_id
@@ -97,9 +119,9 @@ class Span:
     def set_error(self, exc: BaseException | str | None) -> "Span":
         if exc is None:
             return self
-        self._error = exc if isinstance(exc, str) else "".join(
-            traceback.format_exception_only(type(exc), exc)
-        ).strip()
+        self._error = (
+            exc if isinstance(exc, str) else "".join(traceback.format_exception_only(type(exc), exc)).strip()
+        )
         return self
 
     def fail(self, exc: BaseException) -> "Span":

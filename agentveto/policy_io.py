@@ -9,6 +9,7 @@ The point of `explain` is not to show off. It's that the first thing every
 new user asks is "will this rule hit my case?". An offline CLI that answers
 that in 200 ms beats a docs page.
 """
+
 from __future__ import annotations
 
 import json
@@ -82,6 +83,7 @@ class Explanation:
 
 # ---------------------------------------------------------------- loading
 
+
 def load_policy(path: str | os.PathLike) -> dict:
     """Load and validate a policy from a JSON file."""
     with open(path, encoding="utf-8") as fh:
@@ -97,9 +99,7 @@ def load_policy_from_dict(raw: Any) -> dict:
 
     default = raw.get("default", "allow")
     if default not in EFFECTS:
-        raise PolicyError(
-            f"default must be one of {EFFECTS}, got {default!r}"
-        )
+        raise PolicyError(f"default must be one of {EFFECTS}, got {default!r}")
     raw = dict(raw)  # don't mutate the input
     raw["default"] = default
 
@@ -161,6 +161,7 @@ def save_policy(policy: dict, path: str | os.PathLike) -> None:
 
 # ---------------------------------------------------------------- explain
 
+
 # Lazy import to avoid a circular dep (veto.py imports nothing from here).
 def _matcher():
     from . import veto as _v
@@ -190,13 +191,24 @@ def explain(policy: dict, action: str, payload: Any = None) -> Explanation:
         reason = str(rule.get("reason") or "")
         action_ok = v._action_match(want_action, action)
         if not action_ok:
-            verdicts.append(RuleVerdict(
-                index=i, name=name, action=want_action, effect=effect,
-                matched=False,
-                paths=[PathVerdict("__action__", want_action, False,
-                                    f"action {action!r} does not match {want_action!r}")],
-                reason=reason,
-            ))
+            verdicts.append(
+                RuleVerdict(
+                    index=i,
+                    name=name,
+                    action=want_action,
+                    effect=effect,
+                    matched=False,
+                    paths=[
+                        PathVerdict(
+                            "__action__",
+                            want_action,
+                            False,
+                            f"action {action!r} does not match {want_action!r}",
+                        )
+                    ],
+                    reason=reason,
+                )
+            )
             continue
         when = rule.get("when") or {}
         paths: list[PathVerdict] = []
@@ -206,15 +218,25 @@ def explain(policy: dict, action: str, payload: Any = None) -> Explanation:
             paths.append(PathVerdict(path, cond, ok, detail))
             if not ok:
                 matched = False
-        verdicts.append(RuleVerdict(
-            index=i, name=name, action=want_action, effect=effect,
-            matched=matched, paths=paths, reason=reason,
-        ))
+        verdicts.append(
+            RuleVerdict(
+                index=i,
+                name=name,
+                action=want_action,
+                effect=effect,
+                matched=matched,
+                paths=paths,
+                reason=reason,
+            )
+        )
 
     decision = evaluate(policy, action, payload)
     return Explanation(
-        action=action, payload=payload, default=default,
-        rules=verdicts, decision=decision,
+        action=action,
+        payload=payload,
+        default=default,
+        rules=verdicts,
+        decision=decision,
     )
 
 

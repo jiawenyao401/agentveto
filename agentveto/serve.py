@@ -32,8 +32,7 @@ def build_app(db: str | None = None):
         from fastapi.responses import HTMLResponse
     except ImportError as exc:  # pragma: no cover
         raise SystemExit(
-            "serve() needs the optional extras. Install them with:\n\n"
-            "    pip install 'agentveto[serve]'\n"
+            "serve() needs the optional extras. Install them with:\n\n    pip install 'agentveto[serve]'\n"
         ) from exc
 
     store = Store(db)
@@ -50,7 +49,7 @@ def build_app(db: str | None = None):
                 rows.append(
                     "<tr>"
                     f'<td><a href="/run/{r["id"]}">{r["name"]}</a></td>'
-                    f'<td>{r["status"]}</td>'
+                    f"<td>{r['status']}</td>"
                     f'<td class="n">{r["span_count"]}</td>'
                     f'<td class="n">${r["total_cost"]:.5f}</td>'
                     f'<td class="n">{r["tokens_in"]} / {r["tokens_out"]}</td>'
@@ -58,9 +57,7 @@ def build_app(db: str | None = None):
                 )
             body = (
                 "<table><tr><th>Run</th><th>Status</th><th>Steps</th>"
-                "<th>Cost</th><th>Tokens in/out</th></tr>"
-                + "".join(rows)
-                + "</table>"
+                "<th>Cost</th><th>Tokens in/out</th></tr>" + "".join(rows) + "</table>"
             )
         return INDEX.replace("__BODY__", body).replace("__DB__", store.path)
 

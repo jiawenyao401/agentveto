@@ -57,8 +57,7 @@ def test_current_lang_priority(monkeypatch):
 
 
 def test_decision_reason_text_localizes(monkeypatch):
-    d = Decision("deny", action="send_email", rule="r",
-                 reason={"en": "blocked", "zh": "拦截"})
+    d = Decision("deny", action="send_email", rule="r", reason={"en": "blocked", "zh": "拦截"})
     monkeypatch.setenv("AGENTVETO_LANG", "zh")
     assert d.reason_text() == "拦截"
     monkeypatch.setenv("AGENTVETO_LANG", "en")
@@ -66,8 +65,7 @@ def test_decision_reason_text_localizes(monkeypatch):
 
 
 def test_decision_str_localizes(monkeypatch):
-    d = Decision("deny", action="send_email", rule="no-mail",
-                 reason={"en": "no mail", "zh": "禁止发邮件"})
+    d = Decision("deny", action="send_email", rule="no-mail", reason={"en": "no mail", "zh": "禁止发邮件"})
     monkeypatch.setenv("AGENTVETO_LANG", "zh")
     assert "禁止发邮件" in str(d)
 
@@ -82,10 +80,14 @@ def test_veto_error_message_localizes(monkeypatch):
 def test_evaluate_returns_dict_reason():
     P = {
         "rules": [
-                {"name": "no-mail", "action": "send_email", "effect": "deny",
-                 "reason": {"en": "blocked", "zh": "拦截"}}
-            ]
-        }
+            {
+                "name": "no-mail",
+                "action": "send_email",
+                "effect": "deny",
+                "reason": {"en": "blocked", "zh": "拦截"},
+            }
+        ]
+    }
     d = evaluate(P, "send_email", {})
     assert d.effect == "deny"
     assert isinstance(d.reason, dict)
@@ -95,10 +97,14 @@ def test_guard_error_message_in_active_language(monkeypatch):
     monkeypatch.setenv("AGENTVETO_LANG", "zh")
     P = {
         "rules": [
-                {"name": "no-mail", "action": "send_email", "effect": "deny",
-                 "reason": {"en": "blocked", "zh": "禁止外发"}}
-            ]
-        }
+            {
+                "name": "no-mail",
+                "action": "send_email",
+                "effect": "deny",
+                "reason": {"en": "blocked", "zh": "禁止外发"},
+            }
+        ]
+    }
 
     @guard(P, action="send_email")
     def send_email(to):

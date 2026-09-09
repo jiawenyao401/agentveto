@@ -24,6 +24,7 @@ def span_veto(span):
 
 # ---------------------------------------------------------------- evaluate
 
+
 def test_default_is_allow_when_no_rule_matches():
     p = {"default": "allow", "rules": []}
     d = evaluate(p, "anything")
@@ -53,8 +54,7 @@ def test_rule_precedence_is_explicit():
     p = {
         "default": "allow",
         "rules": [
-            {"name": "blocked", "action": "refund", "effect": "deny",
-             "when": {"amount": {"gt": 100}}},
+            {"name": "blocked", "action": "refund", "effect": "deny", "when": {"amount": {"gt": 100}}},
             {"name": "allowed", "action": "refund", "effect": "allow"},
         ],
     }
@@ -97,27 +97,44 @@ def test_when_operators_and():
 
 
 def test_when_in_operator():
-    p = {"default": "allow", "rules": [
-        {"name": "no-bulk", "action": "email", "effect": "deny",
-         "when": {"to": {"in": ["all@corp.com", "everyone@corp.com"]}}},
-    ]}
+    p = {
+        "default": "allow",
+        "rules": [
+            {
+                "name": "no-bulk",
+                "action": "email",
+                "effect": "deny",
+                "when": {"to": {"in": ["all@corp.com", "everyone@corp.com"]}},
+            },
+        ],
+    }
     assert evaluate(p, "email", {"to": "all@corp.com"}).effect == "deny"
     assert evaluate(p, "email", {"to": "someone@corp.com"}).allowed
 
 
 def test_exists_operator():
-    p = {"default": "allow", "rules": [
-        {"name": "r", "action": "go", "effect": "deny", "when": {"deploy": {"exists": True}}},
-    ]}
+    p = {
+        "default": "allow",
+        "rules": [
+            {"name": "r", "action": "go", "effect": "deny", "when": {"deploy": {"exists": True}}},
+        ],
+    }
     assert evaluate(p, "go", {"deploy": True}).effect == "deny"
     assert evaluate(p, "go", {}).allowed
 
 
 def test_nested_paths_and_missing_fields_are_false():
-    p = {"default": "deny", "rules": [
-        {"name": "r", "action": "call", "effect": "allow",
-         "when": {"destination.region": {"eq": "cn-east"}}},
-    ]}
+    p = {
+        "default": "deny",
+        "rules": [
+            {
+                "name": "r",
+                "action": "call",
+                "effect": "allow",
+                "when": {"destination.region": {"eq": "cn-east"}},
+            },
+        ],
+    }
     assert evaluate(p, "call", {"destination": {"region": "cn-east"}}).allowed
     assert evaluate(p, "call", {"destination": {"region": "us-west"}}).effect == "deny"
     assert evaluate(p, "call", {"destination": {}}).effect == "deny"
@@ -129,8 +146,10 @@ def test_rule_without_explicit_effect_defaults_to_deny():
 
 
 def test_decision_is_deterministic_and_readable():
-    p = {"default": "deny", "rules": [{"name": "r", "action": "refund", "effect": "ask",
-                                       "when": {"amount": {"gt": 100}}}]}
+    p = {
+        "default": "deny",
+        "rules": [{"name": "r", "action": "refund", "effect": "ask", "when": {"amount": {"gt": 100}}}],
+    }
     a = evaluate(p, "refund", {"amount": 250})
     b = evaluate(p, "refund", {"amount": 250})
     assert a == b
@@ -141,15 +160,24 @@ def test_decision_is_deterministic_and_readable():
 
 # ---------------------------------------------------------------- guard
 
+
 def _policy():
     return {
         "default": "allow",
         "rules": [
-            {"name": "no-refund-over-250", "action": "issue_refund", "effect": "deny",
-             "when": {"amount_usd": {"gt": 250}},
-             "reason": "Over the agent authority line."},
-            {"name": "ask-on-delete", "action": "delete_customer", "effect": "ask",
-             "reason": "Deleting a customer record needs a human."},
+            {
+                "name": "no-refund-over-250",
+                "action": "issue_refund",
+                "effect": "deny",
+                "when": {"amount_usd": {"gt": 250}},
+                "reason": "Over the agent authority line.",
+            },
+            {
+                "name": "ask-on-delete",
+                "action": "delete_customer",
+                "effect": "ask",
+                "reason": "Deleting a customer record needs a human.",
+            },
         ],
     }
 
@@ -281,8 +309,7 @@ def test_guard_async_allow_and_deny():
 
 
 def test_evaluate_is_pure_only_guard_raises():
-    p = {"default": "allow", "rules": [{"name": "r", "action": "x", "effect": "deny",
-                                        "reason": "because"}]}
+    p = {"default": "allow", "rules": [{"name": "r", "action": "x", "effect": "deny", "reason": "because"}]}
     d = evaluate(p, "x")
     assert d.effect == "deny"
 

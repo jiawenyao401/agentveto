@@ -7,6 +7,7 @@ keep working). What we test is:
 - the policy coercion helpers accept dict, JSON string, and file path
 - each tool's underlying implementation produces the right shape
 """
+
 from __future__ import annotations
 
 import json
@@ -21,10 +22,20 @@ from agentveto import mcp as mcp_module
 P = {
     "default": "allow",
     "rules": [
-        {"name": "big-refund", "action": "issue_refund", "effect": "ask",
-         "when": {"amount_usd": {"gt": 250}}, "reason": "too big"},
-        {"name": "external-mail", "action": "send_*", "effect": "deny",
-         "when": {"to": {"endswith": "@external.com"}}, "reason": "no"},
+        {
+            "name": "big-refund",
+            "action": "issue_refund",
+            "effect": "ask",
+            "when": {"amount_usd": {"gt": 250}},
+            "reason": "too big",
+        },
+        {
+            "name": "external-mail",
+            "action": "send_*",
+            "effect": "deny",
+            "when": {"to": {"endswith": "@external.com"}},
+            "reason": "no",
+        },
     ],
 }
 
