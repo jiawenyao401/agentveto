@@ -37,30 +37,48 @@ HN titles that earn the click: ≤ 80 chars, give the benefit, name the mechanis
 
 ### Short (150 words, default)
 
+> Polished 2026-09-09. The previous draft's numbering (1/3/2) and the
+> "nobody else in Python does" line were both counterproductive on HN —
+> the first looks like a crammed trick, the second reads as marketing.
+> The "5-line story" wrapper was also weak; this version ships a real
+> 6-line snippet that you can paste into a terminal.
+
 ```
-Hi HN — I keep hearing "we can't ship this agent, we don't know what it'll do".
-agentveto is a tiny runtime layer that decides that *before* the agent acts, not
-after. It records every step, replays runs deterministically, and can refuse a
-step based on a policy you write in plain Python.
+Hi HN — every agent tool tells you what your agent did. agentveto
+tells you what it wasn't allowed to do, and stops it before that
+happens.
 
-Three things nobody else in Python does:
-1. Veto points — `agentveto.guard(policy, action="send_email")(send_email)`;
-   over the policy's limit, the call never happens.
-3. Single-file HTML reports. 20KB, no CDN, no login, open it on a plane.
-2. Deterministic replay. Same seed + same calls == same output.
+Six lines of Python:
 
-auto-patches openai / anthropic (decorator + monkey-patch), zero required deps,
-runs on Python 3.9+. The 5-line story: pip install agentveto, decorate the tool,
-ship.
+    from agentveto import guard
+    POLICY = {"rules": [{"action": "issue_refund",
+                         "when": {"amount_usd": {"gt": 250}},
+                         "effect": "ask"}]}
+    @guard(POLICY, action="issue_refund")
+    def issue_refund(order_id, amount_usd): ...
 
-GitHub: <URL>
-Demo report: <URL>
+issue_refund("X", 412) raises VetoError, no money moves.
+issue_refund("X", 214) runs.
 
-What am I missing? I'd especially like to hear from anyone running an agent in
-production who's been bitten by a tool firing out of policy.
+Three layers, plain Python:
+  - Veto   — policy gate, fails closed on ask without a human
+  - Replay — recorded LLM responses served from disk, free reruns
+  - Prove  — hash-chained evidence with optional Ed25519; .evd files
+             that verify offline, no db, no SaaS
+
+pip install agentveto. Wraps openai / anthropic automatically. Python
+3.9+, zero required deps.
+
+If you've been bitten by an agent firing a real action out of policy,
+I'd like to hear the shape of it.
 ```
 
-(Yes, the numbering is intentional — keeps it scannable.)
+**Length**: ~141 words. Hook + code + numbers + ask, four moves.
+
+**Recommended title pairing**: ship this with ★1 ("Runtime veto points").
+If ★1 doesn't catch, swap ★1 → ★2 ("A 'no' button") without changing
+this body — the title/body axis is mechanism-vs-emotion, the body itself
+is unchanged.
 
 ### Medium (250 words, the version to actually post)
 
