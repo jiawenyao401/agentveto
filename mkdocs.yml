@@ -33,6 +33,7 @@ nav:
   - Policy language: policy.md
   - Prove (evidence): prove.md
   - MCP server: mcp.md
+  - Integrations: integrations.md
   - Launch kit: launch.md
   - Why Python (not Rust): rust-decision.md
   - Changelog: changelog.md
